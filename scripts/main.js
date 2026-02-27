@@ -33,7 +33,7 @@ scene.add(world);
 let player;
 let physics;
 // let modelLoader;
-// hi
+
 // objective system will only initialize once when the first user gesture is received
 let gameStarted = false;
 
