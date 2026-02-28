@@ -104,12 +104,40 @@ function startGame() {
   objectiveManager.start();
 }
 
-// begin game only if world is ready
-document.addEventListener("keydown", () => {
-  if (!gameStarted && worldGenerated) startGame();
+// Handle intro splash screen
+let introSplashShown = false;
+function closeIntroSplash() {
+  const introSplash = document.getElementById("intro-splash");
+  if (introSplash && !introSplashShown) {
+    introSplash.classList.remove("active");
+    introSplashShown = true;
+    // Start world pre-generation after splash closes
+    preGenerateWorld();
+    // Add event listeners for starting the game
+    document.addEventListener("keydown", handleGameStart);
+    document.addEventListener("mousedown", handleGameStart);
+  }
+}
+
+function handleGameStart() {
+  if (!gameStarted && worldGenerated) {
+    startGame();
+    // Remove listeners after game starts
+    document.removeEventListener("keydown", handleGameStart);
+    document.removeEventListener("mousedown", handleGameStart);
+  }
+}
+
+// Intro splash listeners
+document.addEventListener("keydown", (e) => {
+  if (!introSplashShown) {
+    closeIntroSplash();
+  }
 });
 document.addEventListener("mousedown", () => {
-  if (!gameStarted && worldGenerated) startGame();
+  if (!introSplashShown) {
+    closeIntroSplash();
+  }
 });
 
 // Camera setup
@@ -491,7 +519,7 @@ document.getElementById("retry-btn")?.addEventListener("click", () => {
   location.reload();
 });
 
-// Start world generation immediately when page loads
-preGenerateWorld();
+// World generation will start after intro splash closes
+// The intro splash is shown by default and requires user interaction to proceed
 
 animate();
