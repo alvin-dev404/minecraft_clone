@@ -106,13 +106,34 @@ function startGame() {
 
 // Handle intro splash screen
 let introSplashShown = false;
+const bgmEl = document.getElementById("bgm");
+if (bgmEl) {
+  bgmEl.volume = 0.6;
+}
+
+
+function playBgm() {
+  // Try to start audio; browsers require user gesture, which we have on intro close
+  if (bgmEl && bgmEl.paused) {
+    const p = bgmEl.play();
+    if (p && typeof p.catch === "function") {
+      p.catch(() => {
+        // ignored; will retry on next interaction
+      });
+    }
+  }
+}
+
 function closeIntroSplash() {
   const introSplash = document.getElementById("intro-splash");
   if (introSplash && !introSplashShown) {
     introSplash.classList.remove("active");
     introSplashShown = true;
-    // Start world pre-generation after splash closes
+
+    // Start BGM and world pre-generation after splash closes
+    playBgm();
     preGenerateWorld();
+
     // Add event listeners for starting the game
     document.addEventListener("keydown", handleGameStart);
     document.addEventListener("mousedown", handleGameStart);
@@ -125,10 +146,18 @@ function handleGameStart() {
     // Remove listeners after game starts
     document.removeEventListener("keydown", handleGameStart);
     document.removeEventListener("mousedown", handleGameStart);
+  } else {
+    // If world not ready yet, ensure BGM keeps trying to play after interaction
+    playBgm();
   }
 }
 
-// Intro splash listeners
+// Intro splash listeners and Start button
+const startBtn = document.getElementById("start-btn");
+startBtn?.addEventListener("click", () => {
+  closeIntroSplash();
+});
+
 document.addEventListener("keydown", (e) => {
   if (!introSplashShown) {
     closeIntroSplash();
@@ -137,6 +166,18 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("mousedown", () => {
   if (!introSplashShown) {
     closeIntroSplash();
+  }
+});
+
+// Pause/Resume bgm with pointer lock state for nicer UX
+document.addEventListener("pointerlockchange", () => {
+  if (!bgmEl) return;
+  const locked = document.pointerLockElement != null;
+  if (locked) {
+    playBgm();
+  } else {
+    // Keep playing on unlock to avoid abrupt silence; comment next line to keep always-on
+    // bgmEl.pause();
   }
 });
 
