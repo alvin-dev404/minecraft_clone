@@ -81,12 +81,249 @@ h1 {
 #objective,
 #timer {
   position: fixed;
-  top: 8px;
+  top: 40px;
   left: 8px;
   color: white;
   font-size: 1.5em;
+  background-color: rgb(2, 0, 128);
+  /* border: 2px solid white; */
+  border-radius: 4px;
+  padding: 10px;
 }
 
 #timer {
-  top: 40px;
+  top: 100px;
+  background-color: rgb(2, 0, 128);
+  /* border: 2px solid white; */
+  border-radius: 4px;
+  padding: 10px;
+}
+
+#minimap {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  border: 2px solid #4da6ff;
+  background-color: rgba(0, 0, 0, 0.8);
+  width: 160px;
+  height: 160px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  box-shadow: 0 0 15px rgba(77, 166, 255, 0.3);
+}
+
+#minimap-container {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  z-index: 100;
+  align-items: flex-start;
+}
+
+#minimap-legend {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 15, 30, 0.95) 0%,
+    rgba(25, 25, 45, 0.95) 100%
+  );
+  border: 2px solid #4da6ff;
+  padding: 10px;
+  color: #e0e0ff;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  width: auto;
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 0 15px rgba(77, 166, 255, 0.3);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  left: -180px;
+}
+
+#minimap-legend h3 {
+  /* position: obsolute; */
+  /* left: -20px; */
+  margin: 0 0 20px 0;
+  font-size: 12px;
+  font-weight: bold;
+  color: #4da6ff;
+  border-bottom: 2px solid #4da6ff;
+  padding-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0;
+  line-height: 1.1;
+  font-size: 10px;
+}
+
+.legend-item.resource-item {
+  gap: 8px;
+  margin: 5px 0;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(77, 166, 255, 0.2);
+}
+
+.resource-name {
+  font-weight: bold;
+  color: #ffffff;
+  flex: 1;
+  min-width: 60px;
+}
+
+.resource-count {
+  font-size: 9px;
+  color: #b0b0d0;
+  min-width: 30px;
+  text-align: right;
+  font-family: "Courier New", monospace;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #999;
+  flex-shrink: 0;
+}
+
+#minimap-legend::-webkit-scrollbar {
+  width: 6px;
+}
+
+#minimap-legend::-webkit-scrollbar-track {
+  background: rgba(77, 166, 255, 0.1);
+}
+
+#minimap-legend::-webkit-scrollbar-thumb {
+  background: #4da6ff;
+  border-radius: 3px;
+}
+
+#minimap-legend::-webkit-scrollbar-thumb:hover {
+  background: #7fbfff;
+}
+
+.legend-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #4da6ff;
+  opacity: 0.9;
+}
+
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.splash-screen.active {
+  display: flex;
+}
+
+.splash-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 4px solid white;
+  padding: 40px;
+  border-radius: 10px;
+  color: white;
+  text-align: center;
+  max-width: 600px;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+.splash-content h1 {
+  font-size: 3em;
+  margin: 0 0 20px 0;
+  font-family: "Minecraft", sans-serif;
+}
+
+.splash-content p {
+  font-size: 1.5em;
+  margin: 10px 0;
+}
+
+#quest-details,
+#victory-stats,
+#loss-stats {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 2px solid #00ff00;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 5px;
+  text-align: left;
+  font-size: 1.2em;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.quest-item {
+  margin: 8px 0;
+  padding: 8px;
+  border-left: 3px solid #00ff00;
+  padding-left: 12px;
+}
+
+.quest-item.current {
+  border-left-color: #ff00ff;
+  background-color: rgba(255, 0, 255, 0.1);
+}
+
+.splash-content button {
+  background-color: #00ff00;
+  color: #000;
+  border: none;
+  padding: 15px 40px;
+  font-size: 1.2em;
+  font-family: "Minecraft", sans-serif;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-top: 20px;
+  transition: all 0.3s;
+}
+
+.splash-content button:hover {
+  background-color: #00cc00;
+  transform: scale(1.05);
+}
+
+.splash-content.victory {
+  border-color: #00ff00;
+}
+
+.splash-content.victory h1 {
+  color: #00ff00;
+}
+
+.splash-content.loss {
+  border-color: #ff0000;
+}
+
+.splash-content.loss h1 {
+  color: #ff0000;
+}
+
+.splash-footer {
+  font-size: 0.9em !important;
+  color: #aaa;
+  margin-top: 15px;
 }

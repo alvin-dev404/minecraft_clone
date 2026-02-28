@@ -1,32 +1,100 @@
-import { resources } from "./blocks";
+import { resources, blocks } from "./blocks";
+import { RNG } from "./rng";
 
-// simple manager for the resource-collection objective and countdown timer
+// Resource set: collection of resources and their targets
+// When all are collected, player gains time bonus and a new set appears
 export const objectiveManager = {
-  resource: null,
-  target: 0,
-  collected: 0,
-  timeLimit: 0, // seconds
+  currentSet: null, // { resources: [{blockId, target, collected}, ...], setIndex }
+  sets: [], // all sets for this game
+  setIndex: 0,
+  totalTimeBonus: 300, // total bonus time available (5 minutes)
+  timeLeftToGain: 300,
+  baseTime: 120, // starting time (2 minutes)
+  timeLimit: 120,
   startTime: 0,
   timerId: null,
+  worldSeed: 0,
 
-  initRandom() {
-    // pick a random resource and target count
-    const idx = Math.floor(Math.random() * resources.length);
-    this.resource = resources[idx];
-    this.target = 5 + Math.floor(Math.random() * 16); // between 5 and 20
-    this.collected = 0;
-    this.timeLimit = 120; // two minutes by default
-    console.log(`Objective: collect ${this.target} of ${this.resource.name}`);
-    // update overlay now that the objective is known
+  generateSets() {
+    // use world seed to generate deterministic but varied resource chains
+    const rng = new RNG(this.worldSeed);
+    this.sets = [];
+
+    // create 3-5 sets of objectives
+    const numSets = 3 + Math.floor(rng.random() * 3);
+    for (let i = 0; i < numSets; i++) {
+      const setResources = [];
+      // each set has 1-3 resources
+      const resourcesInSet = 1 + Math.floor(rng.random() * 3);
+      const pickedIndices = new Set();
+
+      for (let j = 0; j < resourcesInSet; j++) {
+        let idx;
+        do {
+          idx = Math.floor(rng.random() * resources.length);
+        } while (pickedIndices.has(idx));
+        pickedIndices.add(idx);
+
+        const resource = resources[idx];
+        const target = 3 + Math.floor(rng.random() * 8); // 3-10 of each
+        setResources.push({
+          blockId: resource.id,
+          name: resource.name,
+          target,
+          collected: 0,
+        });
+      }
+      this.sets.push({ resources: setResources, setIndex: i });
+    }
+    console.log(`Generated ${numSets} objective sets`);
+  },
+
+  initRandom(worldSeed) {
+    this.worldSeed = worldSeed;
+    this.setIndex = 0;
+    this.timeLeftToGain = this.totalTimeBonus;
+    this.timeLimit = this.baseTime;
+    this.generateSets();
+    this.loadSet(0);
+  },
+
+  loadSet(index) {
+    if (index >= this.sets.length) {
+      // all sets complete!
+      this.allComplete();
+      return;
+    }
+    this.setIndex = index;
+    this.currentSet = this.sets[index];
+    // reset collected counts
+    this.currentSet.resources.forEach((r) => (r.collected = 0));
+
+    this.updateObjectiveDisplay();
+    console.log(
+      `Loaded set ${index + 1}/${this.sets.length}: ${this.getSetDescription()}`,
+    );
+  },
+
+  getSetDescription() {
+    if (!this.currentSet) return "No objective";
+    return this.currentSet.resources
+      .map((r) => `${r.target} ${r.name}`)
+      .join(", ");
+  },
+
+  updateObjectiveDisplay() {
+    if (!this.currentSet) return;
     const objEl = document.getElementById("objective");
     if (objEl) {
-      objEl.textContent = `Collect ${this.target} ${this.resource.name.replace(/_/g, " ")}.`;
+      const items = this.currentSet.resources
+        .map((r) => `${r.collected}/${r.target} ${r.name.replace(/_/g, " ")}`)
+        .join(" | ");
+      objEl.textContent = `[Set ${this.setIndex + 1}/${this.sets.length}] ${items}`;
     }
   },
 
   start() {
     this.startTime = performance.now();
-    // update timer element once per second
     this.updateTimer();
     this.timerId = setInterval(() => this.updateTimer(), 1000);
   },
@@ -36,7 +104,7 @@ export const objectiveManager = {
     const remaining = Math.max(0, Math.ceil(this.timeLimit - elapsed));
     const timerEl = document.getElementById("timer");
     if (timerEl) {
-      timerEl.textContent = `Time left: ${remaining}s`;
+      timerEl.textContent = `Time: ${remaining}s | Bonus left: ${this.timeLeftToGain}s`;
     }
     if (remaining <= 0) {
       clearInterval(this.timerId);
@@ -45,28 +113,55 @@ export const objectiveManager = {
   },
 
   collect(blockId) {
-    console.log("collect called with id", blockId);
-    if (!this.resource) return;
-    if (blockId === this.resource.id) {
-      this.collected++;
-      const objEl = document.getElementById("objective");
-      if (objEl) {
-        objEl.textContent = `Collected ${this.collected}/${this.target} ${this.resource.name.replace(/_/g, " ")}`;
+    if (!this.currentSet) return;
+
+    let setComplete = true;
+    for (const resource of this.currentSet.resources) {
+      if (
+        resource.blockId === blockId &&
+        resource.collected < resource.target
+      ) {
+        resource.collected++;
+        console.log(
+          `Collected ${resource.name}: ${resource.collected}/${resource.target}`,
+        );
       }
-      if (this.collected >= this.target) {
-        this.complete();
+      if (resource.collected < resource.target) {
+        setComplete = false;
       }
+    }
+
+    this.updateObjectiveDisplay();
+
+    if (setComplete) {
+      this.completeSet();
     }
   },
 
-  complete() {
+  completeSet() {
+    clearInterval(this.timerId);
+    const bonus = Math.min(20, this.timeLeftToGain);
+    this.timeLeftToGain -= bonus;
+    this.timeLimit += bonus;
+    const status = document.getElementById("status");
+    if (status) status.textContent = `+${bonus}s! Moving to next objective...`;
+    console.log(`Set complete! Bonus: +${bonus}s`);
+
+    // load next set after a short delay
+    setTimeout(() => {
+      this.loadSet(this.setIndex + 1);
+      this.start();
+    }, 2000);
+  },
+
+  allComplete() {
     clearInterval(this.timerId);
     const status = document.getElementById("status");
-    if (status) status.textContent = "Objective complete!";
+    if (status) status.textContent = "All objectives complete! You win!";
   },
 
   fail() {
     const status = document.getElementById("status");
-    if (status) status.textContent = "Time's up!";
+    if (status) status.textContent = "Time's up! Game Over.";
   },
 };

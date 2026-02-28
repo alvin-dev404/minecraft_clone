@@ -24,29 +24,61 @@ document.body.appendChild(renderer.domElement);
 
 // Scene setup
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x80a0e0, 50, 75);
+scene.fog = new THREE.Fog(0x80a0e0, 40, 65);
 
 const world = new World();
-// hide generation until the player presses a key to start
 scene.add(world);
 
 let player;
 let physics;
-// let modelLoader;
+let modelLoader;
 
-// objective system will only initialize once when the first user gesture is received
+// Track world generation state
+let worldGenerated = false;
 let gameStarted = false;
 
+// Pre-generate world on page load
+function preGenerateWorld() {
+  console.log("Starting world pre-generation...");
+  const instructionsEl = document.getElementById("instructions");
+  if (instructionsEl) {
+    instructionsEl.innerHTML = `
+      <h1>GENERATING WORLD...</h1>
+      <p>Please wait while the terrain is being created.</p>
+      <div style="margin: 20px 0; font-size: 1.2em;">⏳</div>
+    `;
+  }
+
+  try {
+    world.generate();
+    worldGenerated = true;
+    console.log("World generated with seed", world.seed);
+    if (instructionsEl) {
+      instructionsEl.innerHTML = `
+        <h1>RESOURCE HUNT</h1>
+        <p>Your task is to mine randomly assigned resources
+        before the timer runs out.</p>
+        <p>Complete all objective sets to win!</p>
+        <h2>PRESS ANY KEY TO BEGIN</h2>
+      `;
+    }
+  } catch (e) {
+    console.error("ERROR generating world", e);
+    if (instructionsEl) {
+      instructionsEl.innerHTML = `
+        <h1>ERROR</h1>
+        <p>Failed to generate world. Please reload the page.</p>
+      `;
+    }
+  }
+}
+
 function startGame() {
-  if (gameStarted) return;
+  if (gameStarted || !worldGenerated) return;
   gameStarted = true;
   console.log("game start triggered");
   try {
-    // generate the terrain when the game actually begins
-    world.generate();
-    console.log("world generated with seed", world.seed);
-
-    // now that the world exists we can construct the player and physics
+    // world is already generated, now create player and physics
     player = new Player(scene, world);
     physics = new Physics(scene);
     modelLoader = new ModelLoader((models) => {
@@ -64,20 +96,20 @@ function startGame() {
     // request pointer lock immediately so the user doesn't need a second click
     player.controls.lock();
   } catch (e) {
-    console.error("Error during world generation", e);
+    console.error("Error during game start", e);
     return;
   }
 
-  objectiveManager.initRandom();
+  objectiveManager.initRandom(world.seed);
   objectiveManager.start();
 }
 
-// begin game on any user gesture
+// begin game only if world is ready
 document.addEventListener("keydown", () => {
-  if (!gameStarted) startGame();
+  if (!gameStarted && worldGenerated) startGame();
 });
 document.addEventListener("mousedown", () => {
-  if (!gameStarted) startGame();
+  if (!gameStarted && worldGenerated) startGame();
 });
 
 // Camera setup
@@ -92,10 +124,6 @@ orbitCamera.layers.enable(1);
 
 const controls = new OrbitControls(orbitCamera, renderer.domElement);
 controls.update();
-
-const modelLoader = new ModelLoader((models) => {
-  player.setTool(models.pickaxe);
-});
 
 let sun;
 function setupLights() {
@@ -112,13 +140,278 @@ function setupLights() {
   sun.shadow.camera.near = 0.1;
   sun.shadow.camera.far = 200;
   sun.shadow.bias = -0.0001;
-  sun.shadow.mapSize = new THREE.Vector2(2048, 2048);
+  sun.shadow.mapSize = new THREE.Vector2(1024, 1024);
   scene.add(sun);
   scene.add(sun.target);
 
   const ambient = new THREE.AmbientLight();
   ambient.intensity = 0.2;
   scene.add(ambient);
+}
+
+// Minimap system - 2D Canvas renderer
+const minimapCanvas = document.getElementById("minimap");
+const minimapCtx = minimapCanvas.getContext("2d");
+minimapCanvas.width = 160;
+minimapCanvas.height = 160;
+
+// Map size in blocks
+const mapSize = 80; // Show an 80x80 block area
+
+// Resource colors and shapes
+const resourceColors = {
+  grass: "#90EE90",
+  dirt: "#8B4513",
+  stone: "#808080",
+  coal_ore: "#FFD700", // Gold/Yellow for coal
+  iron_ore: "#87CEEB", // Light blue for iron
+  tree: "#228B22", // Forest green for trees
+  leaves: "#00AA00", // Bright green for leaves
+  sand: "#F4A460", // Sandy brown
+  snow: "#FFFFFF", // White
+  anconite: "#FF69B4", // Hot pink for anconite
+};
+
+// Track last minimap render to avoid rendering every frame
+let lastMinimapRender = 0;
+const minimapRenderInterval = 150; // ms between updates (increased for performance)
+
+function drawArrow(ctx, x, y, angle, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -size);
+  ctx.lineTo(size / 2, size);
+  ctx.lineTo(0, size / 2);
+  ctx.lineTo(-size / 2, size);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function renderMinimap() {
+  if (!player || !world) return;
+
+  const now = performance.now();
+  if (now - lastMinimapRender < minimapRenderInterval) return;
+  lastMinimapRender = now;
+
+  // Clear canvas
+  minimapCtx.fillStyle = "#0f0f1e";
+  minimapCtx.fillRect(0, 0, 160, 160);
+
+  // Calculate which world blocks to show
+  const blockSize = 256 / mapSize;
+  const playerBlockX = Math.floor(player.position.x);
+  const playerBlockZ = Math.floor(player.position.z);
+
+  // Offset so player is in center
+  const offsetX = playerBlockX - mapSize / 2;
+  const offsetZ = playerBlockZ - mapSize / 2;
+
+  const chunkSize = world.chunkSize.width;
+  const playerChunkX = Math.floor(player.position.x / chunkSize);
+  const playerChunkZ = Math.floor(player.position.z / chunkSize);
+
+  // Scan terrain and draw blocks
+  const blocksToScan = {};
+
+  for (let cx = playerChunkX - 2; cx <= playerChunkX + 2; cx++) {
+    for (let cz = playerChunkZ - 2; cz <= playerChunkZ + 2; cz++) {
+      const chunk = world.getChunk(cx, cz);
+      if (chunk && chunk.loaded) {
+        // Sample surface blocks
+        for (let x = 0; x < chunkSize; x++) {
+          for (let z = 0; z < chunkSize; z++) {
+            const worldX = cx * chunkSize + x;
+            const worldZ = cz * chunkSize + z;
+
+            // Skip if outside map bounds
+            if (
+              worldX < offsetX ||
+              worldX >= offsetX + mapSize ||
+              worldZ < offsetZ ||
+              worldZ >= offsetZ + mapSize
+            ) {
+              continue;
+            }
+
+            // Get highest non-empty block
+            let topBlock = null;
+            for (let y = chunkSize - 1; y >= 0; y--) {
+              const block = chunk.getBlock(x, y, z);
+              if (block && block.id !== 0) {
+                topBlock = block;
+                break;
+              }
+            }
+
+            if (topBlock) {
+              const key = `${worldX},${worldZ}`;
+              blocksToScan[key] = topBlock;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Draw terrain blocks
+  for (const [key, block] of Object.entries(blocksToScan)) {
+    const [worldX, worldZ] = key.split(",").map(Number);
+    const mapX = (worldX - offsetX) * blockSize;
+    const mapY = (worldZ - offsetZ) * blockSize;
+
+    minimapCtx.fillStyle = resourceColors[block.name] || "#666";
+    minimapCtx.fillRect(mapX, mapY, blockSize, blockSize);
+    minimapCtx.strokeStyle = "#333";
+    minimapCtx.lineWidth = 0.5;
+    minimapCtx.strokeRect(mapX, mapY, blockSize, blockSize);
+  }
+
+  // Draw resource markers (coal and iron as circles with outlines)
+  if (objectiveManager.currentSet) {
+    for (const resource of objectiveManager.currentSet.resources) {
+      const resourceName = resource.name.toLowerCase();
+
+      for (let cx = playerChunkX - 1; cx <= playerChunkX + 1; cx++) {
+        for (let cz = playerChunkZ - 1; cz <= playerChunkZ + 1; cz++) {
+          const chunk = world.getChunk(cx, cz);
+          if (chunk && chunk.loaded) {
+            // Scan for resources (every 6 blocks for performance)
+            for (let x = 0; x < chunkSize; x += 6) {
+              for (let z = 0; z < chunkSize; z += 6) {
+                for (
+                  let y = chunkSize - 1;
+                  y >= Math.max(0, chunkSize - 30);
+                  y--
+                ) {
+                  const block = chunk.getBlock(x, y, z);
+                  if (block && block.id === resource.blockId) {
+                    const worldX = cx * chunkSize + x;
+                    const worldZ = cz * chunkSize + z;
+
+                    if (
+                      worldX >= offsetX &&
+                      worldX < offsetX + mapSize &&
+                      worldZ >= offsetZ &&
+                      worldZ < offsetZ + mapSize
+                    ) {
+                      const mapX =
+                        (worldX - offsetX) * blockSize + blockSize / 2;
+                      const mapY =
+                        (worldZ - offsetZ) * blockSize + blockSize / 2;
+
+                      // Draw circle for resource
+                      const radius = blockSize * 0.7;
+                      minimapCtx.fillStyle =
+                        resourceColors[resource.name] || "#FFF";
+                      minimapCtx.beginPath();
+                      minimapCtx.arc(mapX, mapY, radius, 0, Math.PI * 2);
+                      minimapCtx.fill();
+
+                      // Draw outline
+                      minimapCtx.strokeStyle = "#FFF";
+                      minimapCtx.lineWidth = 1;
+                      minimapCtx.stroke();
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Draw player as an arrow pointing in the direction they're looking
+  const playerMapX = (playerBlockX - offsetX) * blockSize;
+  const playerMapY = (playerBlockZ - offsetZ) * blockSize;
+
+  // Get player's yaw angle (direction they're looking)
+  const playerAngle = player.controls?.getObject?.().rotation?.y || 0;
+
+  drawArrow(
+    minimapCtx,
+    playerMapX + blockSize / 2,
+    playerMapY + blockSize / 2,
+    -playerAngle,
+    6,
+    "#FF4444",
+  );
+
+  // Draw border
+  minimapCtx.strokeStyle = "#4da6ff";
+  minimapCtx.lineWidth = 2;
+  minimapCtx.strokeRect(0, 0, 160, 160);
+
+  // Update legend
+  updateMinimapLegend();
+}
+
+function updateMinimapLegend() {
+  const legendEl = document.getElementById("minimap-legend");
+  if (!legendEl) return;
+
+  let html = "<h3>⚔ OBJECTIVES</h3>";
+
+  // Player
+  html += '<div class="legend-item">';
+  html +=
+    '<div style="width: 12px; height: 12px; background: #FF4444; border: 2px solid #FFaaaa;"></div>';
+  html += '<span style="font-weight: bold;">YOU</span>';
+  html += "</div>";
+
+  // Only show objective resources
+  if (
+    objectiveManager.currentSet &&
+    objectiveManager.currentSet.resources.length > 0
+  ) {
+    // Define comprehensive resource styling
+    const resourceStyles = {
+      stone: {
+        color: "#808080",
+        icon: "■",
+        displayName: "STONE",
+      },
+      coal_ore: {
+        color: "#FFD700",
+        icon: "●",
+        displayName: "COAL",
+      },
+      iron_ore: {
+        color: "#87CEEB",
+        icon: "◆",
+        displayName: "IRON",
+      },
+      anconite: {
+        color: "#FF69B4",
+        icon: "★",
+        displayName: "ANCONITE",
+      },
+    };
+
+    for (const resource of objectiveManager.currentSet.resources) {
+      const style = resourceStyles[resource.name] || {
+        color: "#CCCCCC",
+        icon: "●",
+        displayName: resource.name.replace(/_/g, " ").toUpperCase(),
+      };
+
+      html += '<div class="legend-item resource-item">';
+      html += `<div style="width: 14px; height: 14px; background: ${style.color}; border: 2px solid ${style.color}; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #000; font-weight: bold;"></div>`;
+      html += `<span class="resource-name">${style.displayName}</span>`;
+      html += `<span class="resource-count">${resource.collected}/${resource.target}</span>`;
+      html += "</div>";
+    }
+  }
+
+  legendEl.innerHTML = html;
 }
 
 // Render loop
@@ -154,6 +447,11 @@ function animate() {
   );
   stats.update();
 
+  // render minimap if game has started
+  if (gameStarted) {
+    renderMinimap();
+  }
+
   previousTime = currentTime;
 }
 
@@ -170,4 +468,30 @@ window.addEventListener("resize", () => {
 });
 
 setupLights();
+
+// Splash screen handlers
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    objectiveManager.closeSplash();
+  }
+});
+document.addEventListener("click", () => {
+  if (!gameStarted) return; // only close splashes during gameplay
+  const questSplash = document.getElementById("quest-splash");
+  if (questSplash?.classList.contains("active")) {
+    objectiveManager.closeSplash();
+  }
+});
+
+// Restart buttons
+document.getElementById("restart-btn")?.addEventListener("click", () => {
+  location.reload();
+});
+document.getElementById("retry-btn")?.addEventListener("click", () => {
+  location.reload();
+});
+
+// Start world generation immediately when page loads
+preGenerateWorld();
+
 animate();

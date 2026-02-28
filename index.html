@@ -31,14 +31,42 @@
   </div>
   <div id="overlay">
     <div id="instructions">
-      <h1>RESOURCE HUNT</h1>
-      <p>Your task is to mine a random quantity of a randomly chosen resource
+      <h1>Under-Mine</h1>
+      <p>Your task is to mine randomly assigned resources
       before the timer runs out.</p>
+      <p>Complete all objective sets to win!</p>
       <p>Once you press any key the world will generate and the clock will start.</p>
       <h2>PRESS ANY KEY TO BEGIN</h2>
     </div>
   </div>
+  <div id="quest-splash" class="splash-screen">
+    <div class="splash-content">
+      <h1>📜 CURRENT OBJECTIVES</h1>
+      <div id="quest-details"></div>
+      <p class="splash-footer">Press ESC or click to continue</p>
+    </div>
+  </div>
+  <div id="victory-splash" class="splash-screen">
+    <div class="splash-content victory">
+      <h1>🎉 VICTORY!</h1>
+      <p>You collected all objectives!</p>
+      <div id="victory-stats"></div>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <div id="loss-splash" class="splash-screen">
+    <div class="splash-content loss">
+      <h1>💀 GAME OVER</h1>
+      <p>Time's up! You didn't complete all objectives.</p>
+      <div id="loss-stats"></div>
+      <button id="retry-btn">Try Again</button>
+    </div>
+  </div>
   <div id="status"></div>
+  <div id="minimap-container">
+    <canvas id="minimap"></canvas>
+    <div id="minimap-legend"></div>
+  </div>
   <script type="module" src="./scripts/main.js"></script>
 </body>
 
