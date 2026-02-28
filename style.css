@@ -78,25 +78,143 @@ h1 {
   color: white;
 }
 
-#objective,
-#timer {
+#objective {
   position: fixed;
   top: 40px;
   left: 8px;
   color: white;
   font-size: 1.5em;
-  background-color: rgb(2, 0, 128);
-  /* border: 2px solid white; */
-  border-radius: 4px;
-  padding: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(2, 0, 128, 0.95),
+    rgba(0, 20, 180, 0.95)
+  );
+  border: 2px solid #4da6ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow:
+    0 0 20px rgba(77, 166, 255, 0.4),
+    inset 0 0 10px rgba(77, 166, 255, 0.1);
+  font-family: "Minecraft", sans-serif;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 
 #timer {
-  top: 100px;
-  background-color: rgb(2, 0, 128);
-  /* border: 2px solid white; */
+  position: fixed;
+  top: 120px;
+  left: 8px;
+  color: #ffeebb;
+  font-size: 1.8em;
+  background: linear-gradient(135deg, #1a1510, #2c251c);
+  border: 3px solid #d4af37;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow:
+    0 0 25px rgba(212, 175, 55, 0.5),
+    inset 0 0 15px rgba(212, 175, 55, 0.2);
+  font-family: "Minecraft", sans-serif;
+  font-weight: bold;
+  letter-spacing: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  transition: all 0.3s ease;
+}
+
+#timer::before {
+  content: "⏱️";
+  font-size: 0.9em;
+  margin-right: 8px;
+}
+
+#timer-main {
+  font-size: 1.1em;
+  color: #00ff00;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+}
+
+#timer-bonus {
+  font-size: 0.85em;
+  color: #ffdd00;
+  opacity: 0.9;
+}
+
+#timer-bar {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.5);
   border-radius: 4px;
-  padding: 10px;
+  overflow: hidden;
+  border: 1px solid #00ff00;
+  margin-top: 4px;
+}
+
+#timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4af37, #bfa76f);
+  width: 100%;
+  transition: width 0.5s linear;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+}
+
+#timer.low-time {
+  border-color: #bfa76f;
+  background: linear-gradient(135deg, #443216, #5c4424);
+  box-shadow:
+    0 0 30px rgba(191, 167, 111, 0.6),
+    inset 0 0 15px rgba(191, 167, 111, 0.3);
+  animation: pulse-yellow 1s infinite;
+}
+
+#timer.low-time #timer-main {
+  color: #bfa76f;
+  text-shadow: 0 0 10px rgba(191, 167, 111, 0.8);
+}
+
+#timer.low-time #timer-bar-fill {
+  background: linear-gradient(90deg, #bfa76f, #a88c55);
+  box-shadow: 0 0 15px rgba(191, 167, 111, 1);
+}
+
+#timer.critical-time {
+  border-color: #aa0000;
+  background: linear-gradient(135deg, #400000, #800000);
+  box-shadow:
+    0 0 40px rgba(170, 0, 0, 0.8),
+    inset 0 0 15px rgba(170, 0, 0, 0.2);
+  animation: pulse-red 0.5s infinite;
+}
+
+#timer.critical-time #timer-main {
+  color: #ff4444;
+  text-shadow: 0 0 15px rgba(255, 0, 0, 1);
+}
+
+#timer.critical-time #timer-bar-fill {
+  background: linear-gradient(90deg, #ff4444, #aa0000);
+  box-shadow: 0 0 20px rgba(170, 0, 0, 1);
+}
+
+@keyframes pulse-yellow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes pulse-red {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 #minimap {
@@ -111,6 +229,7 @@ h1 {
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   box-shadow: 0 0 15px rgba(77, 166, 255, 0.3);
+  z-index: 99;
 }
 
 #minimap-container {
@@ -350,11 +469,71 @@ h1 {
   border-radius: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  flex-direction: row;
   max-width: none;
   position: relative;
+}
+
+.splash-content.intro .meta-left,
+.splash-content.intro .meta-right {
+  flex: 0 0 20%;
+  display: flex;
+  justify-content: center;
+}
+
+.splash-content.intro .main-center {
+  flex: 0 0 55%;
+  text-align: center;
+  color: #ffeebb;
+  font-family: "Minecraft", sans-serif;
+}
+
+/* ensure panels are part of splash by giving matching background and border */
+.splash-content.intro .controls,
+.splash-content.intro .toolbar-preview {
+  background: rgba(20, 20, 20, 0.7);
+  border: 4px solid #bfa76f;
+  border-radius: 4px;
+  padding: 14px;
+  width: 100%;
+}
+
+.splash-content.intro .controls h2,
+.splash-content.intro .toolbar-preview h3 {
+  font-family: "Minecraft", sans-serif;
+}
+/* pixel-style border effect */
+.splash-content.intro .controls,
+.splash-content.intro .toolbar-preview {
+  box-shadow: 0 0 0 2px #000 inset;
+}
+
+.splash-content.intro .controls ul {
+  padding-left: 18px;
+  list-style: none;
+}
+
+.splash-content.intro .controls li {
+  position: relative;
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.splash-content.intro .controls li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #bfa76f;
+  border: 1px solid #000;
+}
+.splash-content.intro .toolbar-preview .toolbar-icons {
+  justify-content: flex-start;
 }
 
 .splash-content.intro > * {
@@ -391,6 +570,61 @@ h1 {
 #intro-splash.active {
   display: flex;
   animation: fadeIn 0.5s ease-in;
+}
+
+/* splash specific sections */
+.splash-content.intro .controls,
+.splash-content.intro .toolbar-preview {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #bfa76f;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  max-width: 80%;
+  text-align: left;
+  color: #ffeebb;
+  font-family: "Minecraft", sans-serif;
+  font-size: 0.9em;
+  z-index: 2;
+}
+
+.splash-content.intro .controls h2,
+.splash-content.intro .toolbar-preview h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3em;
+  color: #d4af37;
+}
+
+.splash-content.intro .controls ul {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.splash-content.intro .controls li {
+  margin: 4px 0;
+}
+
+.splash-content.intro .toolbar-preview .toolbar-icons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.splash-content.intro .toolbar-preview .toolbar-icon.preview {
+  width: 40px;
+  height: 40px;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+
+.splash-content.intro .toolbar-preview .toolbar-icon.preview:hover {
+  opacity: 1;
+}
+
+.splash-content.intro .loading-text {
+  font-size: 0.8em;
+  color: #c0b080;
+  text-align: center;
 }
 
 @keyframes fadeIn {

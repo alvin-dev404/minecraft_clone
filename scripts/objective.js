@@ -103,9 +103,29 @@ export const objectiveManager = {
     const elapsed = (performance.now() - this.startTime) / 1000;
     const remaining = Math.max(0, Math.ceil(this.timeLimit - elapsed));
     const timerEl = document.getElementById("timer");
+    const timerMain = document.getElementById("timer-main");
+    const timerBonus = document.getElementById("timer-bonus");
+    const timerBarFill = document.getElementById("timer-bar-fill");
+
     if (timerEl) {
-      timerEl.textContent = `Time: ${remaining}s | Bonus left: ${this.timeLeftToGain}s`;
+      if (timerMain) timerMain.textContent = `Time: ${remaining}s`;
+      if (timerBonus) timerBonus.textContent = `Bonus: ${this.timeLeftToGain}s`;
+
+      // Calculate progress bar percentage (0-100%)
+      const progressPercent = Math.max(0, (remaining / this.timeLimit) * 100);
+      if (timerBarFill) {
+        timerBarFill.style.width = progressPercent + "%";
+      }
+
+      // Update visual state based on remaining time
+      timerEl.classList.remove("low-time", "critical-time");
+      if (remaining <= 10 && remaining > 3) {
+        timerEl.classList.add("low-time");
+      } else if (remaining <= 3) {
+        timerEl.classList.add("critical-time");
+      }
     }
+
     if (remaining <= 0) {
       clearInterval(this.timerId);
       this.fail();

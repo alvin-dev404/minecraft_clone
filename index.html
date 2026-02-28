@@ -14,7 +14,11 @@
   <div id="info">
     <div id="info-player-position"></div>
     <div id="objective"></div>
-    <div id="timer"></div>
+    <div id="timer">
+      <div id="timer-main">Time: 0s</div>
+      <div id="timer-bonus">Bonus: 0s</div>
+      <div id="timer-bar"><div id="timer-bar-fill"></div></div>
+    </div>
   </div>
   <div id="toolbar-container">
     <div id="toolbar">
@@ -31,11 +35,38 @@
   </div>
   <div id="intro-splash" class="splash-screen active">
     <div class="splash-content intro">
-      
-      <!-- <p style="font-size: 1.2em; margin: 20px 0;"></p> -->
-      <div style="margin: 30px 0; font-size: 3em;">🌍</div>
-      <h1>⛏️ A Resource Hunt Adventure ⛏️</h1>
-      <p class="splash-footer" style="margin-top: 40px;">Click or Press Any Key to Continue</p>
+      <div class="meta-left">
+        <div class="controls">
+          <h2>Controls</h2>
+          <ul>
+            <li>WASD – Move</li>
+            <li>Mouse – Look around</li>
+            <li>Left click – Mine / interact</li>
+            <li>Right click – Place / use</li>
+            <li>Esc – Pause / close menus</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="main-center">
+        <!-- <p style="font-size: 1.2em; margin: 20px 0;"></p> -->
+        <div style="margin: 30px 0; font-size: 3em;">🌍</div>
+        <h1>⛏️ A Resource Hunt Adventure ⛏️</h1>
+        <p class="splash-footer" style="margin-top: 40px;">Click or Press Any Key to Continue</p>
+      </div>
+
+      <div class="meta-right">
+        <div class="toolbar-preview">
+          <h3>Toolbar Loading</h3>
+          <div class="toolbar-icons">
+            <img class="toolbar-icon preview" src="textures/grass.png" />
+            <img class="toolbar-icon preview" src="textures/dirt.png" />
+            <img class="toolbar-icon preview" src="textures/stone.png" />
+            <img class="toolbar-icon preview" src="textures/coal_ore.png" />
+          </div>
+          <p class="loading-text">Loading tools...</p>
+        </div>
+      </div>
     </div>
   </div>
   <div id="overlay">
